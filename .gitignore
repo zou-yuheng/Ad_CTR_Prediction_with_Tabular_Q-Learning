@@ -1,0 +1,58 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ===== Virtual environments =====
+.venv/
+venv/
+env/
+ENV/
+
+# ===== Distribution / packaging =====
+build/
+dist/
+*.egg-info/
+*.egg
+
+# ===== Testing / coverage =====
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ===== Jupyter =====
+.ipynb_checkpoints/
+
+# ===== IDE / editors =====
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Logs =====
+*.log
+
+# ===== Dataset (Avazu train.csv is ~6.3 GB, must not be committed) =====
+# Download it from https://www.kaggle.com/competitions/avazu-ctr-prediction/data
+# and place it at the project root as train.csv.
+/train.csv
+
+# ===== Course submission folder (contains personal name/student ID,
+#       docx reports, a 1.28 GB zip and a duplicate 6.3 GB dataset copy) =====
+/00-机器学习/
+
+# ===== Original Chinese course requirements/design document (private) =====
+/机器学习.md
+
+# ===== Note =====
+# Trained model checkpoints (model.npz, model_seed*.npz) are intentionally
+# tracked: they are tiny (~21 KB each) and allow the plotting scripts to run
+# without retraining.
