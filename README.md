@@ -1,6 +1,8 @@
 # Ad CTR Prediction with Tabular Q-Learning
 
-An end-to-end reinforcement learning project that models budget-constrained ad display decisions on the Avazu dataset. Developed as a self-proposed topic for the Machine Learning course.
+*A Contextual Bandit Approach to Budget-Constrained Impression Selection*
+
+A contextual multi-armed bandit project for selecting high-value mobile ad impressions on the Avazu dataset, implemented with tabular Q-learning and evaluated under fixed display-budget quotas. Developed as a self-proposed topic for the Machine Learning course.
 
 ## Important Notice
 
@@ -25,13 +27,15 @@ This project is developed for ACADEMIC PURPOSES ONLY. It is NOT production-ready
 
 ## Project Overview
 
-In digital advertising, the accuracy of Click-Through Rate (CTR) estimation directly determines platform revenue and user experience. Traditional approaches such as Logistic Regression and DeepFM treat CTR prediction as a **static supervised learning problem**, estimating a fixed click probability from user/ad features, while ignoring the sequential-decision nature of ad serving: every display decision changes the environment (remaining budget, user fatigue, competitive landscape) and constrains all subsequent decisions.
+In digital advertising, click-through rate (CTR) estimation directly drives platform revenue and user experience. Supervised models such as logistic regression and DeepFM predict a click probability for every impression, but when a platform can only serve a fraction of incoming traffic — finite slots, a finite budget — the operational problem is a **selection** problem: given the context of each impression, decide whether to display it so that the CTR of the served impressions is maximized.
 
-This project reformulates ad display as a **budget-constrained sequential decision process**: the agent may actively forgo low-value impression opportunities and allocate limited exposure to high-value samples, aiming for global return maximization.
+This project models that decision as a **contextual multi-armed bandit — the single-step special case of reinforcement learning without state transitions**. At each impression the agent observes a hashed context, chooses *display* or *skip*, and receives an immediate reward (1 for a click, 0 otherwise). The Avazu sample is offline, i.i.d. and confined to a single hour, so no decision feeds back into the environment and no Markov chain can be modeled; the discount factor is γ = 0. Under this setting the tabular Q-learning update degenerates to an incremental, per-context mean-reward estimator — mathematically equivalent to conditional-mean estimation in supervised learning.
+
+The value of the exercise therefore lies not in sequential optimization but in a **disciplined bandit pipeline**: leakage-safe state construction (deterministic MD5 hashing; long-tail truncation fitted on the training set only), Laplace-smoothed value estimates for sparse contexts, and a Top-k display policy evaluated at quotas from 5% to 100% against random and rule-based baselines across five random seeds. Here the "budget" is an evaluation-time display quota rather than a dynamically consumed resource; the code keeps interfaces reserved for upgrading to a full MDP once data with bidding dynamics becomes available.
 
 ## Method
 
-### RL Formulation: Contextual Multi-Armed Bandit
+### Contextual Multi-Armed Bandit Formulation
 
 Since all records in the selected data snapshot fall within the same hour and each impression is independent, the problem is modeled as a contextual multi-armed bandit rather than a full MDP:
 
@@ -178,7 +182,7 @@ All three policies select the **same number of samples** at every display ratio,
 | 50% | 25.36% | 17.14% | 18.10% | 1.48 |
 | 100% | 17.28% | 17.28% | 17.28% | 1.00 |
 
-![](ctr_vs_ratio_1.png)
+![CTR vs Display Ratio](ctr_vs_ratio.png)
 
 ### Robustness Verification (5 random seeds)
 
@@ -208,7 +212,7 @@ To rule out chance, the full pipeline was repeated with seeds 42 / 123 / 456 / 7
 | **Mean** | **2.91** | **2.50** | **1.91** | **1.65** | **1.46** | **1.00** |
 | **Std** | 0.1018 | 0.0729 | 0.0312 | 0.0211 | 0.0103 | 0.0000 |
 
-![](multi_seed_lift_1.png)
+![Lift vs Display Ratio across 5 seeds](multi_seed_lift.png)
 
 - At the 5% display ratio, mean Lift reaches **2.91 ± 0.10**, with mean RL CTR of **50.92% ± 2.55%**.
 - Lift decreases monotonically for every seed and converges exactly to 1.00 at 100%, validating the evaluation framework.
@@ -224,25 +228,23 @@ To rule out chance, the full pipeline was repeated with seeds 42 / 123 / 456 / 7
 
 To inspect whether high Q-values come from adequately explored states rather than noise, the Q-table and per-bucket visit counts are visualized as heatmaps (seed = 42).
 
-![](q_heatmap_seed42_1.png)
+![Q-table heatmap](q_heatmap_seed42.png)
 
-![](q_vs_count_comparison_1.png)
+![Q-value vs visit count](q_vs_count_comparison.png)
 
 The diagnostic flags buckets with high Q-values but fewer than 5 visits — candidate overfitting spots that Laplace smoothing and the 512-bucket cap are designed to keep in check.
 
 ## Method Selection & Reflection
 
-I document the limitations of this project explicitly rather than hiding them, because I believe knowing where a method fails is as important as knowing how to apply it.
+I document limitations explicitly rather than hiding them, because knowing where a method fails is as important as knowing how to apply it.
 
-**Mismatch between method and data.** The Avazu snapshot used here is offline and i.i.d.: each impression is independent, users are anonymous, no temporal dependency exists between decisions, and no bidding information is available for budget constraints. The data therefore cannot support Markov-chain modeling. For pure CTR prediction, supervised learning (e.g. Logistic Regression or FM) would be a more natural formulation.
+**Method must match data.** The Avazu snapshot is offline, i.i.d. and confined to one hour: independent impressions, anonymous users, and no bidding dynamics — it cannot support Markov-chain modeling, and for plain CTR prediction supervised learning (e.g. logistic regression or FM) would be the more natural formulation. With γ = 0 and no state transitions, the Q-learning update is exactly a per-context historical-mean estimator, so the reinforcement-learning route and supervised frequency estimation reach the same destination by different paths.
 
-**Different paths, same destination.** With gamma = 0 and no state transitions, Tabular Q-learning reduces mathematically to estimating the historical mean reward of each state — equivalent to the frequency estimation performed by supervised learning. The RL route reaches the same result by a longer path.
+**The real takeaway.** Method selection must be driven by data structure: before choosing an algorithm, first ask whether the method and the data match. This lesson is worth more to me than the 2.91x Lift itself.
 
-**The real takeaway.** Method selection must be driven by data structure. Before any algorithm or engineering work, one should first ask whether the method and the data match. This lesson is worth more to me than the 2.91x Lift itself.
+**When this approach would fail.** (1) No learnable signal — CTR differences across contexts vanish; (2) a state space too large for the Q-table to converge; (3) unreliable estimates in small-sample buckets causing overfitting; (4) severe train/test distribution shift.
 
-**Reserved interfaces for future extension.** The framework can be upgraded into a full MDP by introducing gamma \> 0, state-transition modeling and budget constraints, as soon as a dataset with real-time bidding information becomes available. DQN could replace the tabular Q-table if the state space grows, online learning could address distribution shift, and policy-gradient methods could handle continuous actions such as bid prices.
-
-**Failure scenarios discussed.** (1) Data with no learnable signal, where CTR differences across states vanish; (2) an overly large state space where the Q-table cannot converge; (3) overfitting caused by unreliable CTR estimates in small-sample buckets; (4) severe train/test distribution shift.
+**Future extension.** With a dataset containing real-time bidding dynamics, the framework can be upgraded into a full MDP (γ > 0, state transitions, a budget that is actually consumed over time); DQN can replace the tabular Q-table for larger state spaces, online learning can handle distribution shift, and policy-gradient methods can support continuous actions such as bid prices.
 
 ## Tech Stack
 
