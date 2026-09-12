@@ -53,9 +53,9 @@ The state string is built from four features and mapped deterministically to one
     state_str = f"{hour_bucket}|{banner_pos}|{site_id_group}|{app_category_group}"
     state_id  = int(md5(state_str).hexdigest(), 16) % 512
 
-- ****`hour_bucket`** — last two digits of the **`hour` field (`YYMMDDHH`)
-- ****`banner_pos` — ad banner position, used as-is
-- ****`site_id_group`** / **`app_category_group` — long-tail truncation: categories appearing fewer than 10 times in the **training set** are merged into `'Other'`; unseen categories in the test set are also mapped to `'Other'`
+- `hour_bucket`** — last two digits of the **`hour` field (`YYMMDDHH`)
+- `banner_pos` — ad banner position, used as-is
+- `site_id_group`** / **`app_category_group` — long-tail truncation: categories appearing fewer than 10 times in the **training set** are merged into `'Other'`; unseen categories in the test set are also mapped to `'Other'`
 
 MD5 hashing is used instead of Python's built-in `hash()`, whose salt randomization would break reproducibility.
 
@@ -87,7 +87,7 @@ Every statistic used at evaluation time is fitted on the training set only:
 
 ## Dataset
 
-Experiments use the [Avazu Click-Through Rate Prediction dataset](https://www.kaggle.com/competitions/avazu-ctr-prediction/data) (Kaggle), which contains roughly 40 million real mobile ad impression records. To stay within a CPU-only, sub-10-minute budget, only the **first 100,000 rows** are read:
+Experiments use the [avazu\_ctr\_train](https://www.kaggle.com/datasets/wuyingwen06/avazu-ctr-train/data) (Kaggle), which contains roughly 40 million real mobile ad impression records. To stay within a CPU-only, sub-10-minute budget, only the **first 100,000 rows** are read:
 
 | Item | Value |
 | --- | --- |
@@ -99,7 +99,7 @@ Experiments use the [Avazu Click-Through Rate Prediction dataset](https://www.ka
 | Time span of sample | a single hour (`14102100`), hence random rather than temporal split |
 | Key challenge | high-cardinality, sparse categorical features; severe class imbalance |
 
-> **The dataset file is NOT included in this repository.** `train.csv` is about 6.3 GB and is excluded via `.gitignore`. Download `train.gz` from the [Kaggle competition page](https://www.kaggle.com/competitions/avazu-ctr-prediction/data), decompress it, and place the resulting `train.csv` at the project root. The code reads only the first 100,000 rows, so the full pipeline still finishes in a few seconds on a plain CPU laptop.
+> **The dataset file is NOT included in this repository.** `train.csv` is about 6.3 GB and is excluded via `.gitignore`. Download  from the [avazu\_ctr\_train](https://www.kaggle.com/datasets/wuyingwen06/avazu-ctr-train/data), decompress it, and place the resulting `train.csv` at the project root. The code reads only the first 100,000 rows, so the full pipeline still finishes in a few seconds on a plain CPU laptop.
 
 ## Project Structure
 
@@ -123,7 +123,7 @@ Experiments use the [Avazu Click-Through Rate Prediction dataset](https://www.ka
     ├── LICENSE
     └── README.md
 
-`train.csv` must be added manually (see [Dataset](#dataset)). Trained checkpoints (`*.npz`) are tracked on purpose: they are only \~21 KB each and let the plotting scripts run without retraining.
+`train.csv` must be added manually (see [avazu\_ctr\_train](https://www.kaggle.com/datasets/wuyingwen06/avazu-ctr-train/data)). Trained checkpoints (`*.npz`) are tracked on purpose: they are only \~21 KB each and let the plotting scripts run without retraining.
 
 ## Quick Start
 
@@ -182,7 +182,7 @@ All three policies select the **same number of samples** at every display ratio,
 | 50% | 25.36% | 17.14% | 18.10% | 1.48 |
 | 100% | 17.28% | 17.28% | 17.28% | 1.00 |
 
-![CTR vs Display Ratio](ctr_vs_ratio.png)
+![](ctr_vs_ratio_1.png)
 
 ### Robustness Verification (5 random seeds)
 
@@ -212,7 +212,7 @@ To rule out chance, the full pipeline was repeated with seeds 42 / 123 / 456 / 7
 | **Mean** | **2.91** | **2.50** | **1.91** | **1.65** | **1.46** | **1.00** |
 | **Std** | 0.1018 | 0.0729 | 0.0312 | 0.0211 | 0.0103 | 0.0000 |
 
-![Lift vs Display Ratio across 5 seeds](multi_seed_lift.png)
+![](multi_seed_lift_1.png)
 
 - At the 5% display ratio, mean Lift reaches **2.91 ± 0.10**, with mean RL CTR of **50.92% ± 2.55%**.
 - Lift decreases monotonically for every seed and converges exactly to 1.00 at 100%, validating the evaluation framework.
@@ -228,9 +228,9 @@ To rule out chance, the full pipeline was repeated with seeds 42 / 123 / 456 / 7
 
 To inspect whether high Q-values come from adequately explored states rather than noise, the Q-table and per-bucket visit counts are visualized as heatmaps (seed = 42).
 
-![Q-table heatmap](q_heatmap_seed42.png)
+![](q_heatmap_seed42_1.png)
 
-![Q-value vs visit count](q_vs_count_comparison.png)
+![](q_vs_count_comparison_1.png)
 
 The diagnostic flags buckets with high Q-values but fewer than 5 visits — candidate overfitting spots that Laplace smoothing and the 512-bucket cap are designed to keep in check.
 
@@ -244,7 +244,7 @@ I document limitations explicitly rather than hiding them, because knowing where
 
 **When this approach would fail.** (1) No learnable signal — CTR differences across contexts vanish; (2) a state space too large for the Q-table to converge; (3) unreliable estimates in small-sample buckets causing overfitting; (4) severe train/test distribution shift.
 
-**Future extension.** With a dataset containing real-time bidding dynamics, the framework can be upgraded into a full MDP (γ > 0, state transitions, a budget that is actually consumed over time); DQN can replace the tabular Q-table for larger state spaces, online learning can handle distribution shift, and policy-gradient methods can support continuous actions such as bid prices.
+**Future extension.** With a dataset containing real-time bidding dynamics, the framework can be upgraded into a full MDP (γ \> 0, state transitions, a budget that is actually consumed over time); DQN can replace the tabular Q-table for larger state spaces, online learning can handle distribution shift, and policy-gradient methods can support continuous actions such as bid prices.
 
 ## Tech Stack
 
