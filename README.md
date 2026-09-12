@@ -182,7 +182,7 @@ All three policies select the **same number of samples** at every display ratio,
 | 50% | 25.36% | 17.14% | 18.10% | 1.48 |
 | 100% | 17.28% | 17.28% | 17.28% | 1.00 |
 
-![](ctr_vs_ratio_1.png)
+![](images/ctr_vs_ratio.png)
 
 ### Robustness Verification (5 random seeds)
 
@@ -212,7 +212,7 @@ To rule out chance, the full pipeline was repeated with seeds 42 / 123 / 456 / 7
 | **Mean** | **2.91** | **2.50** | **1.91** | **1.65** | **1.46** | **1.00** |
 | **Std** | 0.1018 | 0.0729 | 0.0312 | 0.0211 | 0.0103 | 0.0000 |
 
-![](multi_seed_lift_1.png)
+![](images/multi_seed_lift.png)
 
 - At the 5% display ratio, mean Lift reaches **2.91 ± 0.10**, with mean RL CTR of **50.92% ± 2.55%**.
 - Lift decreases monotonically for every seed and converges exactly to 1.00 at 100%, validating the evaluation framework.
@@ -228,9 +228,9 @@ To rule out chance, the full pipeline was repeated with seeds 42 / 123 / 456 / 7
 
 To inspect whether high Q-values come from adequately explored states rather than noise, the Q-table and per-bucket visit counts are visualized as heatmaps (seed = 42).
 
-![](q_heatmap_seed42_1.png)
+![](images/q_heatmap_seed42.png)
 
-![](q_vs_count_comparison_1.png)
+![](images/q_vs_count_comparison.png)
 
 The diagnostic flags buckets with high Q-values but fewer than 5 visits — candidate overfitting spots that Laplace smoothing and the 512-bucket cap are designed to keep in check.
 
